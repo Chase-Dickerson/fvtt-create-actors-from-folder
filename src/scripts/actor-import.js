@@ -18,7 +18,7 @@ class ActorImporter extends FilePicker {
     }
 
     get actorTypes() {
-        return game.system.entityTypes.Actor;
+        return game.system.documentTypes.Actor;
     }
 
     /**
@@ -65,7 +65,7 @@ class ActorImporter extends FilePicker {
     }
 
     async _promptOptions() {
-        let templateData = { types: game.system.entityTypes["Actor"] };
+        let templateData = { types: game.system.documentTypes["Actor"] };
         let dlg = await renderTemplate("modules/create-actors-from-folder/src/templates/actor-import-options.html", templateData);
 
         new Dialog({
@@ -76,8 +76,11 @@ class ActorImporter extends FilePicker {
                     icon: '<i class="fas fa-check"></i>',
                     label: "Create Actors",
                     callback: dlg => {
-                        let formElement = dlg[0].children[0];
-                        this._startImport(validateForm(formElement));
+                        const formElement = document.getElementById("actor-import-options");
+                        const form = new FormDataExtended(formElement);
+                        const actorType = document.getElementById("actor-import-type").value;
+                        const dontCreateDuplicate = document.getElementById("actor-import-duplicate").value;
+                        this._startImport(form, actorType, dontCreateDuplicate);
                     }
                 }
             },
@@ -88,12 +91,10 @@ class ActorImporter extends FilePicker {
     /**
      * Import Actors from selected Directory
      */
-    async _startImport(options) {
+    async _startImport(form, actorType, dontCreateDuplicate) {
         this.Directories = [];
         this.Files = [];
 
-        const actorType = options.type;
-        const dontCreateDuplicate = options.duplicate;
         const actorSet = new Set();
 
         const parentDirectory = game.folders.get(this.ParentDirectoryId);
@@ -112,7 +113,7 @@ class ActorImporter extends FilePicker {
 
         // Populate set with existing actor names
         if(dontCreateDuplicate){
-            for(let entity of game.actors.entities){
+            for(let entity of game.actors.contents){
                 actorSet.add(entity.data.name.toUpperCase());
             }
         }
@@ -153,7 +154,12 @@ class ActorImporter extends FilePicker {
                 name: decodeURIComponent(file.Name),
                 type: actorType,
                 img: file.Path,
-                folder: this.Directories[dirIndex].Id
+                folder: this.Directories[dirIndex].Id,
+                sort: 12000,
+                data: {},
+                token: {},
+                items: [],
+                flags: {}
             })
 
             index++;
